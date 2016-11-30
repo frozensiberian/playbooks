@@ -1,0 +1,49 @@
+---
+- name: install and configure nrpe for nagios on Red Hat and Debian like distributions
+  hosts: '{{ target }}'
+
+
+  tasks:
+  - name: add epel repository
+    yum_repository:
+       name: epel
+       description: EPEL YUM repo
+       baseurl: http://download.fedoraproject.org/pub/epel/$releasever/$basearch/
+       gpgcheck: no
+    when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+  - name: install nrpe & nrpe-plugins with yum
+    yum: pkg={{item}} state=latest
+    with_items:
+    - nrpe
+    - nagios-plugins-users
+    - nagios-plugins-load
+    - nagios-plugins-disk
+    - nagios-plugins-procs
+    - nagios-plugins-swap
+    when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+  - name: write nrpe config file
+    template: src=/srv/etc/nagios/redhat-nrpe.j2 dest=/etc/nagios/nrpe.cfg
+    when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+  - name: restart nrpe
+    service:
+       name=nrpe
+       state=restarted
+       enabled=yes
+    when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+
+
+  - name: install nrpe with apt
+    apt: pkg={{item}} state=latest
+    with_items:
+    - nagios-nrpe-server
+    - nagios-plugins
+    when: ansible_distribution == 'Ubuntu'
+  - name: write nrpe config file
+    template: src=/srv/etc/nagios/ubuntu-nrpe.j2 dest=/etc/nagios/nrpe.cfg
+    when: ansible_distribution == 'Ubuntu'
+  - name: restart nagios-nrpe-server
+    service:
+      name=nagios-nrpe-server
+      state=restarted
+      enabled=yes
+    when: ansible_distribution == 'Ubuntu'
